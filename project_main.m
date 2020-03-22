@@ -122,13 +122,13 @@ for i=1:N-1
     H=B*BB+C*CC;
 
 	%torque limit check
-	if u1(i)>tauL1
+	if abs(u1(i))>tauL1
 		taum1(i)=tauL1;
 	else
 		taum1(i)=u1(i);
 	end
 
-	if u2(i)>tauL2
+	if abs(u2(i))>tauL2
 		taum2(i)=tauL2;
 	else
 		taum2(i)=u2(i);
