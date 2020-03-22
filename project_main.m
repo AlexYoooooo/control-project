@@ -1,13 +1,22 @@
 clc;
 clear;
 
-
-rg1=1; %gear ratio
-rg2=1;
-tauc1=0; %friction
-tauc2=0;
+%variables to mess with
+rg1=100; %gear ratio
+rg2=100;
+tauc1=10; %friction
+tauc2=10;
 tauL1=1000; %torque limit
 tauL2=1000;
+noise=0;
+kp1=1;	
+kd1=0.00005;	
+kp2=0;
+kd2=0;
+randn('seed', 8);
+
+
+
 
 %mass&length
 m1=10;
@@ -39,20 +48,29 @@ theta2Des=zeros(1,N); % desired position 2
 theta2DotDes=zeros(1,N); % desired speed 2
 theta2DDotDes=zeros(1,N); % desired acceleration 2
 
+theta1Sensed=zeros(1,N); % desired position 1
+theta1DotSensed=zeros(1,N); % desired speed 1
+theta1DDotSensed=zeros(1,N); % desired acceleration 1
+theta2Sensed=zeros(1,N); % desired position 2
+theta2DotSensed=zeros(1,N); % desired speed 2
+theta2DDotSensed=zeros(1,N); % desired acceleration 2
+
 u1=zeros(1,N);  % total control signal 1
 u2=zeros(1,N);  % total control signal 2
 taum1=zeros(1,N);  % torque output 1
 taum2=zeros(1,N);  % torque output 2
 
-%future controller here, currently set constant tau for openloop
+%target position
+for i=1:5000
+theta1Des(i)=100;
+theta2Des(i)=0;
 
-for i=1:N
-	u1(i)=0;  % torque output 1
-	u2(i)=1;  % torque output 2
 end
+for i=5000:N-1
+theta1Des(i)=50;
+theta2Des(i)=0;
 
-
-
+end
 
 
 
@@ -60,7 +78,23 @@ end
 %construct robot dynamics
 
 for i=1:N-1
-
+    
+    %input open loop testing
+    %u1(i)=0;  % torque output 1
+	%u2(i)=1;  % torque output 2
+	
+	%noise
+	theta1Sensed(i)=theta1(i)+noise*randn;
+	theta2Sensed(i)=theta1(i)+noise*randn;
+	
+	%prepare for d controller
+	theta1DotDes(i)=(theta1Des(i)-theta1Sensed(i))/T;
+	theta2DotDes(i)=(theta2Des(i)-theta2Sensed(i))/T;	
+	
+	%PD controller
+	u1(i)=kp1*(theta1Des(i)-theta1Sensed(i))+kd1*(theta1DotDes(i)-theta1DotSensed(i));
+	u2(i)=kp2*(theta2Des(i)-theta2Sensed(i))+kd2*(theta2DotDes(i)-theta2DotSensed(i));
+	
 
 	%matric A
 	Aa=j1*rg1^2+(m1+m2)*l1^2+m2*l2^2+2*m2*l1*l2*cos(theta2(i));
@@ -179,14 +213,25 @@ for i=1:N-1
 
 end
 figure
-subplot(3,2,1),plot(t,theta1DDot)
-subplot(3,2,2),plot(t,theta1Dot)
-subplot(3,2,3),plot(t,theta1)
+subplot(4,2,1),plot(t,u1)
+subplot(4,2,2),plot(t,theta1DDot)
+subplot(4,2,3),plot(t,theta1Dot)
+subplot(4,2,4),plot(t,theta1)
+
+
 
 figure
-subplot(3,2,1),plot(t,theta2DDot)
-subplot(3,2,2),plot(t,theta2Dot)
-subplot(3,2,3),plot(t,theta2)
+subplot(4,2,1),plot(t,u2)
+subplot(4,2,2),plot(t,theta2DDot)
+subplot(4,2,3),plot(t,theta2Dot)
+subplot(4,2,4),plot(t,theta2)
+
+
+
+
+
+
+
 
 
 
