@@ -4,21 +4,22 @@ clear;
 %variables to mess with
 rg1=1; %gear ratio
 rg2=1;
-tauc1=250; %friction
-tauc2=250;
-tauL1=5000; %torque limit
-tauL2=5000;
-kp1=1000;	
-kd1=600;	
-kp2=1000;
-kd2=300;
-%noise=0.001;
+tauc1=30; %friction
+tauc2=20;
+tauL1=100; %torque limit
+tauL2=80;
+
+kp1=60;	
+kd1=40;	
+kp2=60;
+kd2=40;
+
 encoderRes=2*pi/2^12;
 beta1=0.6;	%constant for ILC
 kilc1=50; %constant for ILC
 beta2=0.6;	%constant for ILC
 kilc2=50; %constant for ILC
-in=10;		%ilteration number
+in=100;		%ilteration number
 
 ILC=true;
 ADP=true;
@@ -39,7 +40,7 @@ j2=m2*l2^2/rg2^2;
 
 % Simulation parameters
 T=0.001; % sampling period
-N=10000; % number of points
+N=12000; % number of points
 t=T*(0:(N-1)); % time vector
 
 %data variables
@@ -51,11 +52,11 @@ theta2Dot=zeros(in,N); % speed 2
 theta2DDot=zeros(in,N); % acceleration 2
 
 theta1Des=zeros(1,N); % desired position 1
-theta1DotDes=zeros(in,N); % desired speed 1
-theta1DDotDes=zeros(in,N); % desired acceleration 1
+theta1DotDes=zeros(1,N); % desired speed 1
+theta1DDotDes=zeros(1,N); % desired acceleration 1
 theta2Des=zeros(1,N); % desired position 2
-theta2DotDes=zeros(in,N); % desired speed 2
-theta2DDotDes=zeros(in,N); % desired acceleration 2
+theta2DotDes=zeros(1,N); % desired speed 2
+theta2DDotDes=zeros(1,N); % desired acceleration 2
 
 theta1Sensed=zeros(in,N); % desired position 1
 theta1DotSensed=zeros(in,N); % desired speed 1
@@ -80,16 +81,125 @@ err2=zeros(in,N);
 taum1=zeros(in,N);  % torque output 1
 taum2=zeros(in,N);  % torque output 2
 
-%target position
-for i=1:N
-theta1Des(i)=sin(0.005*i)*5;
-theta2Des(i)=sin(-0.003*i)*5;
-
+%%motor1
+%target position 1 seg1
+tf1=4;
+accd1=1;
+theta1f1=pi;
+tb1=double(int32((tf1/2-sqrt(accd1^2*tf1^2-4*accd1*(theta1f1-0))/(2*abs(accd1)))/T));
+for i=1:tb1
+	theta1DDotDes(i)=accd1;
 end
 
+for i=tb1+1:(4000-tb1)
+	theta1DDotDes(i)=0;
+end
 
+for i=(4000-tb1+1):4000
+	theta1DDotDes(i)=-accd1;
+end
+%target position 1 seg2
+for i=4001:8000
+	theta1DDotDes(i)=0;
+end
+%target position 1 seg3
+tf2=4;
+accd2=-1.5;
+theta1f2=0;
+tb2=double(int32((tf2/2-sqrt(accd2^2*tf2^2-4*accd2*(theta1f2-pi))/(2*abs(accd2)))/T));
+for i=8001:tb2+8000
+	theta1DDotDes(i)=accd2;
+end
 
+for i=8000+tb2+1:(12000-tb2)
+	theta1DDotDes(i)=0;
+end
 
+for i=(12000-tb2+1):12000
+	theta1DDotDes(i)=-accd2;
+end
+
+%motor2
+%target position 1 seg1
+tf1=2;
+accd1=4;
+theta1f1=pi;
+tb1=double(int32((tf1/2-sqrt(accd1^2*tf1^2-4*accd1*(theta1f1-0))/(2*abs(accd1)))/T));
+for i=1:tb1
+	theta2DDotDes(i)=accd1;
+end
+for i=tb1+1:(2000-tb1)
+	theta2DDotDes(i)=0;
+end
+
+for i=(2000-tb1+1):2000
+	theta2DDotDes(i)=-accd1;
+end
+%target position 1 seg2
+for i=2001:4000
+	theta2DDotDes(i)=0;
+end
+
+%target position 1 seg3
+tf2=2;
+accd2=-4;
+theta1f2=0;
+tb2=double(int32((tf2/2-sqrt(accd2^2*tf2^2-4*accd2*(theta1f2-pi))/(2*abs(accd2)))/T));
+for i=4001:tb2+4000
+	theta2DDotDes(i)=accd2;
+end
+
+for i=4000+tb2+1:(6000-tb2)
+	theta2DDotDes(i)=0;
+end
+
+for i=(6000-tb2+1):6000
+	theta2DDotDes(i)=-accd2;
+end
+
+%target position 2 seg1
+tf2=2;
+accd2=-6;
+theta1f2=-pi;
+tb2=double(int32((tf2/2-sqrt(accd2^2*tf2^2-4*accd2*(theta1f2-0))/(2*abs(accd2)))/T));
+for i=6001:tb2+6000
+	theta2DDotDes(i)=accd2;
+end
+
+for i=6000+tb2+1:(8000-tb2)
+	theta2DDotDes(i)=0;
+end
+
+for i=(8000-tb2+1):8000
+	theta2DDotDes(i)=-accd2;
+end
+%target position 2 seg2
+for i=8001:10000
+	theta2DDotDes(i)=0;
+end
+%target position 2 seg3
+tf2=2;
+accd2=6;
+theta1f2=0;
+tb2=double(int32((tf2/2-sqrt(accd2^2*tf2^2-4*accd2*(theta1f2+pi))/(2*abs(accd2)))/T));
+for i=10001:tb2+10000
+	theta2DDotDes(i)=accd2;
+end
+
+for i=10000+tb2+1:(12000-tb2)
+	theta2DDotDes(i)=0;
+end
+
+for i=(12000-tb2+1):12000
+	theta2DDotDes(i)=-accd2;
+end
+
+for i=1:12000-1
+    theta1DotDes(i+1)=theta1DotDes(i)+theta1DDotDes(i)*T;
+    theta1Des(i+1)=theta1Des(i)+theta1DotDes(i)*T;
+    theta2DotDes(i+1)=theta2DotDes(i)+theta2DDotDes(i)*T;
+    theta2Des(i+1)=theta2Des(i)+theta2DotDes(i)*T;
+end
 
 %construct robot dynamics
 
@@ -245,9 +355,16 @@ for n=1:in
     
 	theta1(n,i+1)=theta1(n,i)+theta1Dot(n,i)*T;
 	theta2(n,i+1)=theta2(n,i)+theta2Dot(n,i)*T;
-	end
-
-
+    end
+%this set works for 100 cycle
+beta1=beta1+0.005;
+beta2=beta2+0.005;
+kilc1=kilc1+0.02;
+kilc2=kilc2+0.08;
+%beta1=beta1+0.02;
+%beta2=beta2+0.02;
+%kilc1=kilc1+0.07;
+%kilc2=kilc2+0.08;
 end
 
 figure
@@ -267,6 +384,10 @@ subplot(5,2,7),plot(t,theta1,t,theta1Des)
 title('motor1 Setpoint&Output');
 subplot(5,2,8),plot(t,err1);
 title('motor1 err');
+subplot(5,2,9),plot(t,theta1(1,:),t,theta1Des,t,theta1(n,:))
+title('motor1 Setpoint&Output first vs last');
+subplot(5,2,10),plot(t,err1(1,:),t,err1(n,:));
+title('motor1 err first vs last');
 
 
 
@@ -287,10 +408,10 @@ subplot(5,2,7),plot(t,theta2,t,theta2Des)
 title('motor2 Setpoint&Output');
 subplot(5,2,8),plot(t,err2);
 title('motor2 err');
-
-
-
-
+subplot(5,2,9),plot(t,theta2(1,:),t,theta2Des,t,theta2(n,:))
+title('motor2 Setpoint&Output first vs last');
+subplot(5,2,10),plot(t,err2(1,:),t,err2(n,:));
+title('motor2 err first vs last');
 
 
 
